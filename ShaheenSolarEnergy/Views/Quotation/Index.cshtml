@@ -1,0 +1,535 @@
+﻿@model ShaheenSolarEnergy.ViewModels.QuotationOrderViewModel
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int counterforQuotation = 1;
+    string formattedDate = Model.Orders.OrderDate.ToString("dd/MM/yyyy");
+    var existingProductIds = new List<int>();
+    foreach (var quotation in Model.Quotations)
+    {
+        existingProductIds.Add(quotation.ProductId);
+    }
+}
+<style>
+    .fadeProp {
+        opacity: 0;
+        pointer-events: none;
+    }
+</style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotation Form</title>
+</head>
+<body>
+    <div class="main-content">
+        <div class="alert alert-dismissible fade show alert-card alert-danger" role="alert" id="errorAlertforSaveOrder" style="display:none">
+            <strong class="text-capitalize">Error!</strong> <span id="errorMessageforSaveOrder"></span>
+            <button class="btn btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @if (ViewBag.SuccessMessage != null)
+        {
+            <div class="alert alert-dismissible fade show alert-card alert-success" role="alert">
+                <strong class="text-capitalize">Success!</strong> @ViewBag.SuccessMessage
+                <button class="btn btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        <div class="row">
+            <div class="col-md-12">
+                <ul class="nav nav-tabs justify-content-end mb-4" id="myTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="invoice-tab" data-bs-toggle="tab" href="#invoice" role="tab" aria-controls="invoice" aria-selected="true">Invoice</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="edit-tab" data-bs-toggle="tab" href="#edit" role="tab" aria-controls="edit" aria-selected="false">Order</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="quotation-tab" data-bs-toggle="tab" href="#Quotation" role="tab" aria-controls="Quotation" aria-selected="false">Quotation</a>
+                    </li>
+                </ul>
+                <div class="card">
+                    <div class="tab-content" id="myTabContent">
+                        <div class="tab-pane fade show active" id="invoice" role="tabpanel" aria-labelledby="invoice-tab">
+                            <div class="d-sm-flex mb-5" data-view="print">
+                                <span class="m-auto"></span>
+                                <button class="btn btn-primary mb-sm-0 mb-3 print-invoice">
+                                    Print Invoice
+                                </button>
+                            </div>
+                            <!-- -===== Print Area =======-->
+                            <div id="print-area">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h4 class="fw-bold">Order Info</h4>
+                                        <p id="orderNumber"></p>
+                                    </div>
+                                    <div class="col-md-6 text-sm-end">
+                                        <p><strong>Order status: </strong><span id="orderStatus"></span></p>
+                                        <p><strong>Order date: </strong><span id="orderDate"></span></p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 mb-4 border-top"></div>
+                                <div class="row mb-5">
+                                    <div class="col-md-6 mb-3 mb-sm-0">
+                                        <h5 class="fw-bold">Bill From</h5>
+                                        <p>Shaheen Solar Energy</p>
+                                    </div>
+                                    <div class="col-md-6 text-sm-end">
+                                        <h5 class="fw-bold">Bill To</h5>
+                                        <p id="customerName"></p>
+                                        <span id="customerAddress"></span>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-12 table-responsive">
+                                        <table class="table table-hover mb-4 table-striped table-bordered" id="invoicequotationTable">
+                                            <thead class="bg-gray-300">
+                                                <tr>
+                                                    <th scope="col" style="width: 50px">#</th>
+                                                    <th scope="col" style="width: 200px">Item Name</th>
+                                                    <th scope="col" style="width: 100px">Unit Price</th>
+                                                    <th scope="col" style="width: 100px">Quantity</th>
+                                                    <th scope="col" style="width: 100px">Cost</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="invoice-summary">
+                                            <h5 class="fw-bold">
+                                                Grand Total: <span id="grandTotal"></span>
+                                            </h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- ==== / Print Area =====-->
+                        </div>
+                        <div class="tab-pane fade" id="edit" role="tabpanel" aria-labelledby="edit-tab">
+                            <div class="alert alert-dismissible fade show alert-card alert-success" role="alert" id="successAlertforOrder" style="display:none">
+                                <strong class="text-capitalize">Success!</strong> <span id="successMessageforOrder"></span>
+                                <button class="btn btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                            <div class="alert alert-dismissible fade show alert-card alert-danger" role="alert" id="errorAlertforOrder" style="display:none">
+                                <strong class="text-capitalize">Error!</strong> <span id="errorMessageforOrder"></span>
+                                <button class="btn btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                            @using (Ajax.BeginForm("SaveOrder", "Order", new AjaxOptions
+                            {
+                                HttpMethod = "POST",
+                                OnBegin = "onBegin",
+                                OnSuccess = "onSuccessForOrder"
+                            }, new { id = "orderForm" }))
+                            {
+                                <div class="d-flex mb-5">
+                                    <span class="m-auto"></span>
+                                    <button class="btn btn-danger text-white" type="button" id="deleteButton" style="margin-right:10px" disabled>Delete</button>
+                                    <button class="btn btn-primary" type="submit" id="saveButton">Save</button>
+                                </div>
+                                <div class="row justify-content-between">
+                                    <div class="col-md-6">
+                                        <h4 class="fw-bold">Order Info</h4>
+                                        <div class="col-sm-4 form-group mb-3 ps-0">
+                                            <label for="orderNo">Order Number</label>
+                                            @Html.TextBoxFor(model => model.Orders.OrderNumber, new { @class = "form-control", disabled = "disabled", id = "OrderNumber" })
+                                            @Html.ValidationMessageFor(model => model.Orders.OrderNumber)
+                                            @Html.HiddenFor(model => model.Orders.OrderNumber)
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 text-end">
+                                        <label class="d-block text-12 text-muted">Order Status</label>
+                                        <div class="pe-0 mb-4">
+                                            <label class="radio radio-reverse radio-danger">
+                                                <input type="radio" name="orderStatus" value="Pending" onchange="setOrderStatus()" /><span>Pending</span><span class="checkmark"></span>
+                                            </label>
+                                            <label class="radio radio-reverse radio-warning">
+                                                <input type="radio" name="orderStatus" value="Processing" onchange="setOrderStatus()" /><span>Processing</span><span class="checkmark"></span>
+                                            </label>
+                                            <label class="radio radio-reverse radio-success">
+                                                <input type="radio" name="orderStatus" value="Delivered" onchange="setOrderStatus()" /><span>Delivered</span><span class="checkmark"></span>
+                                            </label>
+                                            @Html.TextBoxFor(model => model.Orders.OrderStatus, new { id = "orderStatusInput", @class = "form-control fadeProp", @readonly = "readonly" })
+                                            @Html.ValidationMessageFor(model => model.Orders.OrderStatus, "", new { @class = "text-danger" })
+                                        </div>
+                                        <div class="form-group mb-3">
+                                            <label for="order-datepicker">Order Date</label>
+                                            @Html.TextBoxFor(model => model.Orders.OrderDate, new { @class = "form-control text-end", id = "order-datepicker", name = "dp", type = "date" })
+                                            @Html.ValidationMessageFor(model => model.Orders.OrderDate, "", new { @class = "text-danger" })
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 mb-4 border-top"></div>
+                                <div class="row mb-5">
+                                    <div class="col-md-6">
+                                        <h5 class="fw-bold">Bill From</h5>
+                                        <div class="col-md-10 form-group mb-3 ps-0">
+                                            <input class="form-control" id="billFrom3" type="text" value="Shaheen Solar Energy" disabled />
+                                        </div>
+                                        <div class="col-md-10 form-group mb-3 ps-0">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <h5 class="fw-bold">Bill To</h5>
+                                        <div class="col-md-10 offset-md-2 form-group mb-3 pe-0">
+                                            @Html.TextBoxFor(model => model.Orders.CustomerName, new { @class = "form-control", placeholder = "Customer Name" })
+                                            @Html.ValidationMessageFor(model => model.Orders.CustomerName, "", new { @class = "text-danger" })
+                                        </div>
+                                        <div class="col-md-10 offset-md-2 form-group mb-3 pe-0">
+                                            @Html.TextAreaFor(model => model.Orders.CustomerAddress, new { @class = "form-control", placeholder = "Customer Address" })
+                                            @Html.HiddenFor(Model => Model.Orders.Id, new { @id = "hiddenOrderId" })
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                        </div>
+                        <div class="tab-pane fade" id="Quotation" role="tabpanel" aria-labelledby="quotation-tab">
+                            <div class="row">
+                                <div class="alert alert-dismissible fade show alert-card alert-success" role="alert" id="successAlertforQuotation" style="display:none">
+                                    <strong class="text-capitalize">Success!</strong> <span id="successMessageforQuotation"></span>
+                                    <button class="btn btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                <div class="alert alert-dismissible fade show alert-card alert-danger" role="alert" id="errorAlertforQuotation" style="display:none">
+                                    <strong class="text-capitalize">Error!</strong> <span id="errorMessageforQuotation"></span>
+                                    <button class="btn btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                <div class="col-md-12 table-responsive">
+                                    <br />
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h2 class="text-mute">Quotation</h2>
+                                        </div>
+                                        <div class="col-md-4">
+                                            @Html.DropDownList("productId", new SelectList(Model.Products, "Id", "Name"), "Select a product", new { @class = "form-control", @id = "productDropdown" })
+                                        </div>
+                                    </div>
+                                    <table class="table table-hover mb-3 table-bordered table-striped" id="quotationTable">
+                                        <thead class="bg-gray-300">
+                                            <tr>
+                                                <th scope="col" style="width: 1%; text-align: center; vertical-align: middle;"></th>
+                                                <th scope="col" style="width: 50px">#</th>
+                                                <th scope="col" style="width: 200px">Item Name</th>
+                                                <th scope="col" style="width: 100px">Unit Price</th>
+                                                <th scope="col" style="width: 100px">Quantity</th>
+                                                <th scope="col" style="width: 100px">Cost</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var quotation in Model.Quotations)
+                                            {
+                                                <tr>
+                                                    <td><button class="btn btn-sm btn-danger deleteRow rounded-circle"><i class="fas fa-times"></i></button></td>
+                                                    <th scope="row">@counterforQuotation</th>
+                                                    <td>@quotation.Product.Name</td>
+                                                    <td id="unitPrice">@quotation.UnitPrice </td>
+                                                    <td><input type="number" class="form-control quantity" data-product-id="@quotation.Product.Id" data-retailprice="@quotation.UnitPrice" id="quantity_@quotation.Product.Id" value="@quotation.Quantity"></td>
+                                                    <td><span class="totalCost" id="totalCost_@quotation.Product.Id">@quotation.TotalCost</span></td>
+                                                </tr>
+                                                counterforQuotation++;
+                                            }
+
+                                        </tbody>
+                                    </table>
+                                    <button class="btn btn-primary float-end mb-4" onclick="saveQuotation()">Save Quotation</button>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="invoice-summary invoice-summary-input float-end">
+                                        <p>Sub total: <span>$1200</span></p>
+                                        <p class="d-flex align-items-center">Vat(%):<span><input class="form-control small-input" type="text" value="10" />$120</span></p>
+                                        <h5 class="fw-bold d-flex align-items-center">Grand Total:<span><input class="form-control small-input" type="text" value="$" />$1320</span></h5>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end of main-content -->
+    </div>
+
+</body>
+</html>
+@section scripts
+{
+
+    <script>
+        var counter = 1;
+        function populateProductTable(orderNumber) {
+            counter = 1;
+            $.ajax({
+                url: '/Quotation/GetQuotations',
+                type: 'GET',
+                data: { orderNumber: orderNumber },
+                success: function (products) {
+
+                    var tableBody = $('#invoicequotationTable tbody');
+                    tableBody.empty(); // Clear existing rows
+
+                    // Loop through each product in the array
+                    $.each(products, function (index, product) {
+                        var newRow = $('<tr>');
+                        newRow.append('<td>' + counter + '</td>');
+                        newRow.append('<td>' + product.ProductName + '</td>');
+                        newRow.append('<td>' + product.UnitPrice + '</td>');
+                        newRow.append('<td>' + product.Quantity + '</td>');
+                        newRow.append('<td>' + product.Cost + '</td>');
+                        tableBody.append(newRow);
+                        counter++;
+                    });
+                    var grandTotal = calculateGrandTotal(products);
+                    $('#grandTotal').text(grandTotal);
+                },
+                error: function (xhr, status, error) {
+                    console.error(error);
+                }
+            });
+        }
+        function calculateGrandTotal(products) {
+            var grandTotal = 0;
+            $.each(products, function (index, product) {
+                grandTotal += parseFloat(product.Cost);
+            });
+            return grandTotal.toFixed(2); // Fixed to 2 decimal places
+        }
+
+        function setOrderStatus() {
+            var selectedStatus = $('input[name="orderStatus"]:checked').val();
+            $('#orderStatusInput').val(selectedStatus);
+        }
+        function onBegin() {
+            showSpinner();
+        }
+          document.addEventListener('DOMContentLoaded', function () {
+        var orderDateInput = document.getElementById('order-datepicker');
+        var orderDate = new Date('@Model.Orders.OrderDate.ToString("yyyy-MM-dd")');
+        var formattedDate = orderDate.toISOString().split('T')[0];
+        orderDateInput.value = formattedDate;
+          });
+
+        $('#deleteButton').on('click', function () {
+            bootbox.confirm({
+                message: "Are you sure you want to delete?",
+                buttons: {
+                    confirm: {
+                        label: 'Confirm',
+                        className: 'btn-primary'
+                    },
+                    cancel: {
+                        label: 'Cancel',
+                        className: 'btn-secondary'
+                    }
+                },
+                callback: function (result) {
+                    if (result) {
+                        // If user confirms, proceed with deletion
+                        $.ajax({
+                            url: '/Quotation/DeleteOrder/' +@Model.Orders.Id, 
+                            type: 'POST', 
+                            dataType: 'json',
+                            success: function (response) {
+                                if (response.success) {
+                                        window.location.href = '/Quotation/Index'; 
+                                } else {
+                                    $('#errorMessageforSaveOrder').text(response.message);
+                                    $('#errorAlertforSaveOrder').fadeIn().delay(2000).fadeOut();
+                                }
+                            },
+                            error: function (xhr, status, error) {
+                                $('#errorMessageforSaveOrder').text("An Error Occurred While Deleting Order");
+                                $('#errorAlertforSaveOrder').fadeIn().delay(2000).fadeOut(); 
+                            }
+                        });
+                    }
+                }
+            });
+        });
+
+
+        $(document).ready(function () {
+            $('#successAlertSaveOrder').delay(2000).fadeOut(1000);
+            var existingProductIdsArray = [@Html.Raw(string.Join(",", existingProductIds))];
+$('#productDropdown option').each(function() {
+    var productId = parseInt($(this).val());
+
+    if (existingProductIdsArray.includes(productId)) {
+        $(this).prop('disabled', true);
+    }
+});
+  var orderStatus = '@Model.Orders.OrderStatus';
+  $('input[name="orderStatus"]').filter(function () {
+      return $(this).val() === orderStatus;
+  }).prop('checked', true);
+
+            var orderNumber = @Model.Orders.OrderNumber;
+            populateProductTable(orderNumber);
+            var orderId =@Model.Orders.Id;
+            if (orderId != 0) {
+                $('#deleteButton').prop('disabled', false);
+                loadDataForOrder(orderId);
+            } else {
+                $('#order-datepicker').val('');
+            }
+
+
+
+
+        });
+        function loadDataForOrder(orderId) {
+            $.ajax({
+                url: '/Quotation/GetOrderDetails',
+                type: 'GET',
+                data: { id: orderId },
+                success: function (data) {
+                    $('#orderNumber').text(data.OrderNumber);
+                    $('#orderStatus').text(data.OrderStatus);
+                    $('#orderDate').text(data.OrderDate);
+                    $('#customerName').text(data.CustomerName);
+                    $('#customerAddress').text(data.CustomerAddress);
+                },
+                error: function () {
+                    console.log("Error Fetching Order Details");
+                }
+            });
+        }
+
+        function loadData(orderId) {
+            $.ajax({
+                url: '/Quotation/GetQuotations',
+                type: 'GET',
+                data: { id: orderId },
+                success: function (data) {
+                    populateTable(data);
+                },
+                error: function () {
+                    console.log("Error Fetching Invoice Quotation Table Data");
+                }
+            });
+        }
+
+        $(document).on('input', '.quantity', function () {
+            var quantityInput = $(this);
+            var quantity = parseFloat(quantityInput.val());
+            var retailPrice = parseFloat(quantityInput.data('retailprice'));
+
+            if (!isNaN(quantity)) {
+                var totalCost = (retailPrice * quantity).toFixed(2);
+                var productId = quantityInput.attr('id').split('_')[1];
+                $('#totalCost_' + productId).text(totalCost);
+            } else {
+                $('#totalCost_' + productId).text('0.00');
+            }
+        });
+        
+       var counterforQuotation = @counterforQuotation;
+
+        $('#productDropdown').change(function () {
+            var selectedProductId = $(this).val();
+            var selectedProduct = getProductById(selectedProductId);
+            if(selectedProduct) {
+                var newRow = '<tr>' +
+                    '<td><button class="btn btn-sm btn-danger deleteRow rounded-circle"><i class="fas fa-times"></i></button></td>' +
+                    '<th scope="row">' + counterforQuotation + '</th>' +
+                    '<td>' + selectedProduct.Name + '</td>' +
+                    '<td id="unitPrice">' + selectedProduct.RetailPrice + '</td>' +
+                    '<td><input type="number" class="form-control quantity" data-product-id="' + selectedProduct.Id + '" data-retailprice="' + selectedProduct.RetailPrice.toFixed(2) + '" id="quantity_' + selectedProduct.Id + '"></td>' +                    '<td><span class="totalCost" id="totalCost_' + selectedProduct.Id + '">0.00</span></td>' +
+                    '</tr>';
+                $('#quotationTable tbody').append(newRow);
+                counterforQuotation++;
+                $(this).find('option:selected').prop('disabled', true);
+            }
+        });
+        // Delete row when delete button is clicked
+
+        $(document).on('click', '.deleteRow', function () {
+            var productId = $(this).closest('tr').find('.quantity').data('product-id');
+            $('#productDropdown').find('option[value="' + productId + '"]').prop('disabled', false);
+            $(this).closest('tr').remove();
+            counterforQuotation--;
+        });
+        function getProductById(productId) {
+            var product = null;
+            $.ajax({
+                url: '/Quotation/GetProductById', // Endpoint to fetch product details
+                type: 'GET',
+                data: { productId: productId },
+                async: false, // Ensure synchronous request to get the product before returning
+                success: function (response) {
+                    product = response; // Assign the fetched product data to the 'product' variable
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error fetching product:', error);
+                }
+            });
+            return product;
+        }
+        function saveQuotation() {
+            var quotationItems = [];
+            var orderNumber = $('#OrderNumber').val();
+            $('#quotationTable tbody tr').each(function (index) {
+                var item = {};
+                item.productId = $(this).find('.quantity').attr('id').split('_')[1];
+                item.unitPrice = parseFloat($(this).find('#unitPrice').text());
+                item.quantity = parseFloat($(this).find('.quantity').val());
+                item.totalCost = parseFloat($(this).find('.totalCost').text());
+                item.orderId = orderNumber;
+                quotationItems.push(item);
+            });
+
+            $.ajax({
+                url: '/Quotation/SaveQuotation',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(quotationItems),
+                success: function (response) {
+                    if (response.success) {
+                        var orderNumber = response.orderNumber;
+                        populateProductTable(orderNumber);
+                        $('#successMessageforQuotation').text(response.message);
+                        $('#successAlertforQuotation').fadeIn().delay(3000).fadeOut();
+                        $('#errorAlertforQuotation').hide();
+                    } else {
+                        if (response.message === "Order details need to be saved first.") {
+                            $('#errorMessageforSaveOrder').text(response.message);
+                            $('#errorAlertforSaveOrder').fadeIn().delay(5000).fadeOut();
+                            $('#edit-tab').tab('show');
+                        } else {
+                            $('#errorMessageforQuotation').text(response.message);
+                            $('#errorAlertforQuotation').fadeIn().delay(3000).fadeOut();
+                        }
+                        $('#successAlertforQuotation').hide();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    $('#errorMessageforQuotation').text('Error saving quotation');
+                    $('#errorAlertforQuotation').fadeIn().delay(3000).fadeOut();
+                    $('#successAlertforQuotation').hide();
+                }
+            });
+        }
+        function onSuccessForOrder(response) {
+            var orderId = response.orderId;
+            $('#hiddenOrderId').val(orderId);
+            loadDataForOrder(orderId);
+    hideSpinner();
+    if (response.success) {
+        $('#successMessageforOrder').text(response.message);
+        $('#successAlertforOrder').fadeIn().delay(3000).fadeOut();
+    } else {
+        $('#errorMessageforOrder').text(response.message);
+        $('#errorAlertforOrder').fadeIn().delay(3000).fadeOut();
+    }
+}
+
+
+    </script>
+}
+
+

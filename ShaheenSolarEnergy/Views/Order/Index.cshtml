@@ -1,0 +1,174 @@
+﻿@model List<ShaheenSolarEnergy.Models.Order>
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<style>
+    .dropdown {
+        position: absolute;
+        top: 7px;
+        right: 7px;
+    }
+</style>
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6">
+
+            <div class="card" style="max-height: 400px; overflow-y: auto; height:400px;">
+                <div class="card-body">
+                    <h5 class="card-title">Order List</h5>
+                    <input type="text" id="orderNumberInput" class="form-control mb-3" placeholder="Enter Order Number">
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="orderStatusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            Select Status
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="orderStatusDropdown">
+                            <li><a class="dropdown-item" href="#" data-value="">All</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="Pending">Pending</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="Processing">Processing</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="Delivered">Delivered</a></li>
+                        </ul>
+                    </div>
+                    <ul id="orderList" class="list-group">
+                        @foreach (var order in Model)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <!-- Display order information with badges for status -->
+                                <div>
+                                    <strong>Order Number:</strong> @order.OrderNumber <br>
+                                    <strong>Customer Name:</strong> @order.CustomerName <br>
+                                    <strong>Order Date:</strong> @order.OrderDate.ToString("dd MMM, yyyy") <br>
+                                </div>
+                                <!-- Badge for order status -->
+                                @if (order.OrderStatus == "Delivered")
+                                {
+                                    <span class="badge bg-success m2 position-absolute top-0 end-0 mt-1 me-1">@order.OrderStatus</span>
+                                }
+                                else if (order.OrderStatus == "Pending")
+                                {
+                                    <span class="badge bg-danger m2 position-absolute top-0 end-0 mt-1 me-1">@order.OrderStatus</span>
+                                }
+                                else if (order.OrderStatus == "Processing")
+                                {
+                                    <span class="badge bg-warning text-dark m2 position-absolute top-0 end-0 mt-1 me-1">@order.OrderStatus</span>
+                                }
+                                <!-- Button to redirect to Quotation controller's Index action -->
+                                <button class="btn btn-outline-primary btn-sm" onclick="redirectToQuotation('@order.Id')" style="margin-top:36px">Details</button>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+@section Scripts {
+    <script>
+        $('#orderNumberInput').on('input', function () {
+            filterOrders();
+        });
+        $(document).ready(function () {
+            $('.dropdown-item').on('click', function () {
+                // Remove active class from all dropdown items
+                $('.dropdown-item').removeClass('active');
+                // Add active class to the clicked dropdown item
+                $(this).addClass('active');
+            });
+            // Function to filter orders based on selected status
+            $('.dropdown-menu').on('click', '.dropdown-item', function() {
+                var selectedText = $(this).text(); // Get the text of selected item
+                $('#orderStatusDropdown').text(selectedText); // Update the text of dropdown button
+                var selectedStatus = $(this).attr('data-value');
+    $.ajax({
+        url: '/Order/FilteredOrders',
+        type: 'GET',
+        data: { status: selectedStatus },
+        success: function(data) {
+            $('#orderList').empty(); // Clear existing list
+            if (data.length > 0) {
+                $.each(data, function(index, order) {
+                    // Append each order to the list
+                    var statusBadge = '';
+                    if (order.OrderStatus === 'Delivered') {
+                        statusBadge = '<span class="badge bg-success m2 position-absolute top-0 end-0 mt-1 me-1">Delivered</span>';
+                    } else if (order.OrderStatus === 'Pending') {
+                        statusBadge = '<span class="badge bg-danger m2 position-absolute top-0 end-0 mt-1 me-1">Pending</span>';
+                    } else if (order.OrderStatus === 'Processing') {
+                        statusBadge = '<span class="badge bg-warning text-dark m2 position-absolute top-0 end-0 mt-1 me-1">Processing</span>';
+                    }
+                    var orderDate = new Date(parseInt(order.OrderDate.substr(6)));
+
+                    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    var formattedDate = ('0' + orderDate.getDate()).slice(-2) + ' ' + months[orderDate.getMonth()] + ', ' + orderDate.getFullYear();
+
+                    var listItem = '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+                        '<div>' +
+                        '<strong>Order Number:</strong> ' + order.OrderNumber + '<br>' +
+                        '<strong>Customer Name:</strong> ' + order.CustomerName + '<br>' +
+                        '<strong>Order Date:</strong> ' + formattedDate + '<br>' +
+                        '</div>' +
+                        statusBadge +
+                        '<button class="btn btn-outline-primary btn-sm" onclick="redirectToQuotation(' + order.Id + ')" style="margin-top:36px">Details</button>' +
+                        '</li>';
+                    $('#orderList').append(listItem);
+                });
+            } else {
+                // If no data found, display message
+                $('#orderList').html('<p class="text-muted">No data found!!!</p>');
+            }
+        }
+    });
+});
+        });
+        function filterOrders() {
+    var orderNumber = $('#orderNumberInput').val();
+
+    $.ajax({
+        url:  '/Order/FilteredOrders',
+        type: 'GET',
+        data: { orderNumber: orderNumber },
+        success: function(data) {
+            $('#orderList').empty(); // Clear existing list
+            if (data.length > 0) {
+                $.each(data, function (index, order) {
+                    // Append each order to the list
+                    var statusBadge = '';
+                    if (order.OrderStatus === 'Delivered') {
+                        statusBadge = '<span class="badge bg-success m2 position-absolute top-0 end-0 mt-1 me-1">Delivered</span>';
+                    } else if (order.OrderStatus === 'Pending') {
+                        statusBadge = '<span class="badge bg-danger m2 position-absolute top-0 end-0 mt-1 me-1">Pending</span>';
+                    } else if (order.OrderStatus === 'Processing') {
+                        statusBadge = '<span class="badge bg-warning text-dark m2 position-absolute top-0 end-0 mt-1 me-1">Processing</span>';
+                    }
+                    var orderDate = new Date(parseInt(order.OrderDate.substr(6)));
+
+                    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    var formattedDate = ('0' + orderDate.getDate()).slice(-2) + ' ' + months[orderDate.getMonth()] + ', ' + orderDate.getFullYear();
+
+                    var listItem = '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+                        '<div>' +
+                        '<strong>Order Number:</strong> ' + order.OrderNumber + '<br>' +
+                        '<strong>Customer Name:</strong> ' + order.CustomerName + '<br>' +
+                        '<strong>Order Date:</strong> ' + formattedDate + '<br>' +
+                        '</div>' +
+                        statusBadge +
+                        '<button class="btn btn-outline-primary btn-sm" onclick="redirectToQuotation(' + order.Id + ')" style="margin-top:36px">Details</button>' +
+                        '</li>';
+                    $('#orderList').append(listItem);
+                });
+            } else {
+                // If no data found, display message
+                $('#orderList').html('<p class="text-muted">No data found</p>');
+            }
+        }
+    });
+}
+        function redirectToQuotation(orderId) {
+            // Redirect to Quotation controller's Index action with orderId parameter
+ window.location.href = '@Url.Action("Index", "Quotation")' + '?id=' + orderId;        }
+    </script>
+}

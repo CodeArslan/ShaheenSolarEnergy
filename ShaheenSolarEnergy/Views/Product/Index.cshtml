@@ -1,0 +1,429 @@
+﻿@model ShaheenSolarEnergy.Models.Product
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+<body>
+
+    <div class="main-content">
+        <div class="breadcrumb">
+            <ul>
+                <li><a href="#">Products</a></li>
+            </ul>
+        </div>
+        <div class="separator-breadcrumb border-top"></div>
+    </div>
+
+    <p>
+        <a class="btn btn-primary m-1" data-bs-toggle="modal" data-target="#addProduct" data-whatever="mdo">Add Products</a>
+    </p>
+    <div class="col-md-12 mb-3">
+
+
+        <div class="card text-start">
+
+            <div class="card-header">
+                <h4 class="text-25 text-muted">Product List</h4>
+            </div>
+            <div class="alert alert-dismissible fade show alert-card alert-success" role="alert" id="successAlert" style="display:none">
+                <strong class="text-capitalize">Success!</strong> <span id="successMessage"></span>
+                <button class="btn btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div class="alert alert-dismissible fade show alert-card alert-danger" role="alert" id="errorAlert" style="display:none">
+                <strong class="text-capitalize">Error!</strong> <span id="errorMessage"></span>
+                <button class="btn btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered table-striped" id="productTable">
+                        <thead class="bg-gray-300">
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Product Name</th>
+                                <th scope="col">Retail Price</th>
+                                <th scope="col">Wholesale Price</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    @*Modal for Add Product*@
+    <div class="modal fade" id="addProduct" tabindex="-1" role="dialog" aria-labelledby="verifyModalContent" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="verifyModalContent_title">New Product</h5>
+                    <button class="btn btn-close" type="button" data-bs-dismiss="modal" id="modal-close" aria-label="Close"></button>
+                </div>
+                @using (Ajax.BeginForm("ProductDetails", "Product", new AjaxOptions
+                {
+                    HttpMethod = "POST",
+                    OnSuccess = "handleSuccessforAdd",
+                    OnFailure = "handleFailureforAdd",
+                }, new { id = "addProductForm" }))
+                {
+                    @Html.AntiForgeryToken()
+
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(model => model.Name, new { @class = "col-form-label" })
+                                    @Html.TextBoxFor(model => model.Name, new { @class = "form-control", @id = "addProductName", autocomplete = "off" })
+                                    @Html.ValidationMessageFor(model => model.Name, "", new { @class = "text-danger" })
+                                    <div id="duplicateNameforAdd" class="text-danger"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(model => model.WholeSalePrice, new { @class = "col-form-label" })
+                                    @Html.TextBoxFor(model => model.WholeSalePrice, new { @class = "form-control", @id = "addProductWholeSalePrice", @type = "number", autocomplete = "off" })
+                                    @Html.ValidationMessageFor(model => model.WholeSalePrice, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(model => model.RetailPrice, new { @class = "col-form-label" })
+                                    @Html.TextBoxFor(model => model.RetailPrice, new { @class = "form-control", @id = "addProductRetailPrice", @type = "number", autocomplete = "off" })
+                                    @Html.ValidationMessageFor(model => model.RetailPrice, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" id="cancel" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submitForm">Add</button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+
+    @*Modal for Update Supplier*@
+    <div class="modal fade" id="updateProduct" tabindex="-1" role="dialog" aria-labelledby="verifyModalContent" aria-hidden="true">
+
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="verifyModalContent_title">Update Product</h5>
+                    <button class="btn btn-close" type="button" data-bs-dismiss="modal" id="modal-close" aria-label="Close"></button>
+                </div>
+                @using (Ajax.BeginForm("ProductDetails", "Product", new AjaxOptions
+                {
+                    HttpMethod = "POST",
+                    OnSuccess = "handleSuccessforUpdate",
+                    OnFailure = "handleFailureforUpdate",
+                }, new { id = "updateProductForm" }))
+                {
+                    @Html.AntiForgeryToken()
+
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(model => model.Name, new { @class = "col-form-label" })
+                                    @Html.TextBoxFor(model => model.Name, new { @class = "form-control", @id = "editProductName", autocomplete = "off" })
+                                    @Html.ValidationMessageFor(model => model.Name, "", new { @class = "text-danger" })
+                                    <div id="duplicateNameforUpdate" class="text-danger"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(model => model.WholeSalePrice, new { @class = "col-form-label" })
+                                    @Html.TextBoxFor(model => model.WholeSalePrice, new { @class = "form-control", @id = "editProductWholeSalePrice", @type = "number", autocomplete = "off" })
+                                    @Html.ValidationMessageFor(model => model.WholeSalePrice, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(model => model.RetailPrice, new { @class = "col-form-label" })
+                                    @Html.TextBoxFor(model => model.RetailPrice, new { @class = "form-control", @id = "editProductRetailPrice", @type = "number", autocomplete = "off" })
+                                    @Html.ValidationMessageFor(model => model.RetailPrice, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.HiddenFor(model => model.Id, new { @id = "editHiddenId" })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal" id="updateCancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="updateForm">Update</button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
+
+@section scripts
+{
+    <script>
+
+        $(document).ready(function () {
+
+
+
+            //read (Fetch records from database and show in table)
+            $("#productTable").DataTable({
+                ajax: {
+                    url: "/Product/GetProductData",
+                    dataSrc: ""
+                },
+                columns: [
+                    {
+                        data: "Id",
+                        orderable: true,
+                        searchable: true
+                    },
+                    {
+                        data: "Name",
+                        orderable: true,
+                        searchable: true
+                    },
+                    {
+                        data: "RetailPrice",
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: "WholeSalePrice",
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: "Id",
+                        render: function (data) {
+                            return "<a class='text-success me-2 btn btn-primary m-1 edit-btn' href='#' data-bs-toggle='modal' data-target='#updateProduct' data-whatever='mdo' data-id='" + data + "'><i class='fa fa-edit'></i></a>" +
+                                "<a class='text-danger me-2 btn btn-warning delete-btn' id='del' href='#' data-id='" + data + "'><i class='fa fa-trash'></i></a>";
+                        },
+                        orderable: false,
+                        searchable: false
+                    },
+                ],
+                pagingType: 'full_numbers',
+                language: {
+                    paginate: {
+                        first: 'First',
+                        previous: '&lsaquo;',
+                        next: '&rsaquo;',
+                        last: 'Last'
+                    },
+                    searchPlaceholder: 'Min 3 Characters'
+                },
+                autoWidth: false,
+                columnDefs: [
+                    { width: '100px', targets: '_all' }
+                ],
+                drawCallback: function () {
+                    $('.dataTables_paginate .paginate_button').removeClass('paginate_button').addClass('page-item');
+                    $('.dataTables_paginate .paginate_button a').removeClass('paginate_button').addClass('page-link');
+                    $('.dataTables_paginate .paginate_button.current').removeClass('paginate_button').addClass('active');
+                    $('.dataTables_paginate .paginate_button.disabled').removeClass('paginate_button').addClass('disabled');
+                }
+            });
+
+            // Populate update modal for product
+            $('#productTable').on('click', '.edit-btn', function () {
+                var id = $(this).data('id');
+                $.ajax({
+                    url: '/Product/GetProductById/' + id,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (product) {
+                        $('#editProductName').val(product.Name);
+                        $('#editProductRetailPrice').val(product.RetailPrice);
+                        $('#editProductWholeSalePrice').val(product.WholeSalePrice);
+                        $('#editHiddenId').val(product.Id);
+                        $('#updateProduct').modal('show');
+                    },
+                    error: function (xhr, status, error) {
+                        toastr.error(
+                            "An Error Occurred While Fetching Product Details",
+                            "Error",
+                            {
+                                "class": "btn w-100 btn-outline-danger mb-2",
+                                "id": "toast-danger",
+                                timeOut: 2000,
+                                progressBar: true,
+                                closeButton: true
+                            }
+                        );
+                    }
+                });
+            });
+
+
+            // Handle cancel button click in update product modal
+            $("#updateCancel").click(function () {
+                // Reset the form
+                $('#updateProductForm')[0].reset();
+
+                // Clear validation messages
+                $('.text-danger.validation-summary-errors').html('');
+
+                toastr.warning(
+                    "Updation Cancelled",
+                    {
+                        "class": "btn w-100 btn-outline-danger mb-2",
+                        "id": "toast-danger",
+                        progressBar: true,
+                        closeButton: true,
+                        timeOut: 1000
+                    }
+                );
+            });
+
+
+            // Delete product
+            $('#productTable').on('click', '#del', function () {
+                var id = $(this).data('id');
+
+                bootbox.confirm({
+                    message: "Are you sure you want to delete?",
+                    buttons: {
+                        confirm: {
+                            label: 'Confirm',
+                            className: 'btn-primary'
+                        },
+                        cancel: {
+                            label: 'Cancel',
+                            className: 'btn-secondary'
+                        }
+                    },
+                    callback: function (result) {
+                        if (result) {
+                            // If user confirms, proceed with deletion
+                            $.ajax({
+                                url: '/Product/DeleteProduct/' + id,
+                                type: 'POST',
+                                dataType: 'json',
+                                success: function (response) {
+                                    if (response.success) {
+                                        // Show success alert
+                                        $('#successMessage').text(response.message);
+                                        $('#successAlert').fadeIn();
+
+                                        // Optionally, you can update the DataTable after successful deletion
+                                        $('#productTable').DataTable().ajax.reload();
+
+                                        // Hide alerts after a delay
+                                        setTimeout(hideAlerts, 2000); // Adjust the delay as needed (in milliseconds)
+                                    } else {
+                                        // Show error alert
+                                        $('#errorMessage').text(response.message);
+                                        $('#errorAlert').fadeIn();
+
+                                        // Hide alerts after a delay
+                                        setTimeout(hideAlerts, 2000); // Adjust the delay as needed (in milliseconds)
+                                    }
+                                },
+                                error: function (xhr, status, error) {
+                                    // Show error alert for AJAX failure
+                                    $('#errorMessage').text("An Error Occurred While Deleting Product");
+                                    $('#errorAlert').fadeIn();
+
+                                    // Hide alerts after a delay
+                                    setTimeout(hideAlerts, 2000); // Adjust the delay as needed (in milliseconds)
+                                }
+                            });
+                        }
+                    }
+                });
+            });
+
+
+
+        });
+
+        // This function is used when adding a product is successful
+        function handleSuccessforAdd(response) {
+            if (response.success) {
+                $('#successMessage').text(response.message);
+                $('#successAlert').fadeIn();
+                $('#errorAlert').hide();
+                event.preventDefault();
+                $('#addProductForm')[0].reset();
+                $('#duplicateNameforAdd').html('');
+                $('.text-danger.validation-summary-errors').html('');
+                $('#productTable').DataTable().ajax.reload();
+                $("#addProduct").modal('hide');
+                setTimeout(hideAlerts, 2000);
+            } else {
+                $('#errorMessage').text(response.message);
+                $('#errorAlert').fadeIn();
+                $('#successAlert').hide();
+                setTimeout(hideAlerts, 2000);
+            }
+        }
+
+        // This function is used when adding a product fails
+        function handleFailureforAdd() {
+            $('#errorMessage').text("An Error Occurred While Adding Product");
+            $('#errorAlert').show();
+            $('#successAlert').fadeIn();
+            setTimeout(hideAlerts, 2000);
+        }
+
+        // This function is used when updating a product is successful
+        function handleSuccessforUpdate(response) {
+            if (response.success) {
+                $('#successMessage').text(response.message);
+                $('#successAlert').fadeIn();
+                $('#errorAlert').hide();
+                event.preventDefault();
+                $('#productTable').DataTable().ajax.reload();
+                $("#updateProduct").modal('hide');
+                setTimeout(hideAlerts, 2000);
+            } else {
+                $('#errorMessage').text(response.message);
+                $('#errorAlert').fadeIn();
+                $('#successAlert').hide();
+                setTimeout(hideAlerts, 2000);
+            }
+        }
+
+        // This function is used when updating a product fails
+        function handleFailureforUpdate() {
+            $('#errorMessage').text("An Error Occurred While Updating Product");
+            $('#errorAlert').fadeIn();
+            $('#successAlert').hide();
+            setTimeout(hideAlerts, 2000);
+        }
+
+        // Reset form when modal is closed
+        $('#addProduct').on('hidden.bs.modal', function () {
+            $('#addProductForm')[0].reset();
+            $('#duplicateNameforAdd').html('');
+            $('.text-danger.validation-summary-errors').html('');
+            $('#submitForm').prop('disabled', false);
+        });
+
+
+    </script>
+}
+
+
